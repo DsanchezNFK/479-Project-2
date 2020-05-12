@@ -52,14 +52,16 @@ def normalizeDF(df, colNames):
     dfCopy[colNames] = scaler.fit_transform(df[colNames])
     return dfCopy
 
-def getcsv(ignorefile):
+
+def getcsv(ignorefile=""):
     filelist = []
     for filename in os.listdir(os.getcwd()):
         if filename.endswith(".csv") and filename != ignorefile:
             filelist.append(filename)
     return filelist
 
-filelist = getcsv("479Proj2.csv")
+
+filelist = getcsv(ignorefile="479Proj2.csv")
 
 if size == len(filelist):
     if rank == 0:

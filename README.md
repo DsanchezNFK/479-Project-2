@@ -8,6 +8,8 @@
 -The data in the .csv files is not real actual data. Used for code testing purposes.
 -number of processes must be equal to number of files
 
-How to run: 
+
+How to run:
+~In command line type~
 mpiexec -n 4 python3 deathRisk_knn.py 
 

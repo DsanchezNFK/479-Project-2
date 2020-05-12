@@ -1,50 +1,79 @@
+from mpi4py import MPI
+import os
 import pandas as pd
-from numpy.random import permutation
 from sklearn import preprocessing as ppr
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score as acc
 from sklearn.neighbors import KNeighborsClassifier as knc
 
-with open('479Proj2.csv') as covidfile:
-    cases = pd.read_csv(covidfile, index_col="id")
+comm = MPI.COMM_WORLD
+size = comm.Get_size()
+rank = MPI.COMM_WORLD.Get_rank()
 
-#preprocess data (normalize)
+def covid_knn(trainfile, testfile, process_rank):
+    with open(trainfile) as covidfile:
+        cases = pd.read_csv(covidfile, index_col="id")
+
+    with open(testfile) as casefile:
+        tests = pd.read_csv(casefile, index_col="id")
+
+    features = ['age', 'bmi', 'HbA1c']
+    cases = normalizeDF(cases, features)
+
+    features.append('resp_disease')
+    X = cases[features].values
+    y = cases['death_risk'].values
+
+    # split the dataset
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+
+    # knn classification
+    classifier = knc(n_neighbors=6)
+    classifier.fit(X_train, y_train)
+    y_pred = classifier.predict(X_test)
+
+    # knn testing with input files
+    tests = normalizeDF(tests, features)
+    Z = tests[features].values
+    Z_pred = classifier.predict(Z)
+    print("The predictions for: " + testfile)
+    print(Z_pred)
+
+    if process_rank == 0:
+        accuracy = acc(y_test, y_pred) * 100
+        print("Accuracy of the model is: ")
+        print(accuracy)
+
+
+# preprocess data (normalize)
 def normalizeDF(df, colNames):
     scaler = ppr.MinMaxScaler()
     dfCopy = df
-    dfCopy[colNames] = scaler.fit_transform(df[features])
+    dfCopy[colNames] = scaler.fit_transform(df[colNames])
     return dfCopy
 
+def getcsv(ignorefile):
+    filelist = []
+    for filename in os.listdir(os.getcwd()):
+        if filename.endswith(".csv") and filename != ignorefile:
+            filelist.append(filename)
+    return filelist
 
-features = ['age', 'bmi', 'HbA1c']
-cases = normalizeDF(cases, features)
-features.append('resp_disease')
-X = cases[features].values
-y = cases['death_risk'].values
+filelist = getcsv("479Proj2.csv")
 
-#split the dataset
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
-
-#knn classification
-classifier = knc(n_neighbors=4)
-classifier.fit(X_train, y_train)
-y_pred = classifier.predict(X_test)
-
-print(y_pred)
-accuracy = acc(y_test, y_pred)*100
-print(accuracy)
-'''
-
-random_indices = permutation(cases.index)
-test_cutoff = math.floor(len(cases) / 3)
-test = cases.loc[random_indices[1:test_cutoff]]
-train = cases.loc[random_indices[test_cutoff:]]
-
-knn = knc(n_neighbors=5)
-knn.fit(train[X], train[y])
-predictions = knn.predict(test[X])
+if size == len(filelist):
+    if rank == 0:
+        covid_knn("479Proj2.csv", filelist[rank], rank)
+    else:
+        covid_knn("479Proj2.csv", filelist[rank], rank)
+else:
+    if rank == 0:
+        print("Error: number of processes must match number of input files")
+MPI.Finalize()
 
 
-'''
+
+
+
 
 

@@ -63,19 +63,6 @@ def getcsv(ignorefile=""):
 
 filelist = getcsv(ignorefile="479Proj2.csv")
 
-if size == len(filelist):
-    if rank == 0:
-        covid_knn("479Proj2.csv", filelist[rank], rank)
-    else:
-        covid_knn("479Proj2.csv", filelist[rank], rank)
-else:
-    if rank == 0:
-        print("Error: number of processes must match number of input files")
+covid_knn("479Proj2.csv", filelist[rank], rank)
+
 MPI.Finalize()
-
-
-
-
-
-
-
